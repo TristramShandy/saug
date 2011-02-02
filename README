@@ -4,5 +4,6 @@ saug
 Another podcast aggregator
 
 This is going to be a podcast aggregator taylored to my personal needs.
-This is in the very early development stage and not yet usable.
+This is in the early development stage but already usable.
 
+To actually download podcasts, set  'Debug = true'  in the sourcecode.
