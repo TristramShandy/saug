@@ -21,15 +21,27 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+require 'uri'
+require 'time'
+require 'open-uri'
 require 'rss/1.0'
 require 'rss/2.0'
 
-Sources = ["http://www.econlib.org/library/EconTalk.xml"]
+# For test purposes, use fixed data
+Source = "http://www.econlib.org/library/EconTalk.xml"
+TargetDirectory = "~/pod/"
+Verbose = true
+WeekInSeconds = 7 * 24 * 3600
 
 class AggregatorFeed
+  def initialize(source = nil)
+    @source = source
+    @downloaded = []
+    @rss = nil
+  end
 
   def get_rss
-    open(@source) {|s| @rss = RSS::Parser.parse(s.read)}
+    open(@source) {|s| @rss = RSS::Parser.parse(s.read, false)}
   end
 
   def download_conditional(directory, min_date, only_new = true)
@@ -44,11 +56,25 @@ class AggregatorFeed
   def download(item_nr, directory)
     get_rss unless @rss
     url = @rss.items[item_nr].enclosure.url
+
+    # determine filename of file to download
+    uri = URI.parse(url)
+    filename = File.join(File.expand_path(directory), File.basename(uri.path))
+
     # download url and add guid to @downloaded
-    # ... #
+    of = open(filename, 'wb')
+    of.write(open(url).read)
+    of.close
+
+    @downloaded << @rss.items[item_nr].guid
+
+    puts "Downloaded #{url} to #{filename}" if Verbose
   end
 end
 
 if $0 == __FILE__
+  feed = AggregatorFeed.new(Source)
+  # download this week's podcast
+  feed.download_conditional(TargetDirectory, Time.now - WeekInSeconds)
 end
 
