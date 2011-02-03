@@ -1,9 +1,15 @@
 TODO
 ====
 
-  - Add command line options
   - Catchup feature
   - Feed list
   - Verbosity
   - Documentation
   - Individual feed commands
+  - Unit tests
+  - Individual download directories
+
+DONE
+====
+
+  - Add command line options
