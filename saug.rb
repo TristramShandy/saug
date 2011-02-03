@@ -27,12 +27,14 @@ require 'open-uri'
 require 'rss/1.0'
 require 'rss/2.0'
 require 'yaml'
+require 'getoptlong'
 
 # For test purposes, use fixed data
-ConfigFile = "~/.saugrc/config.yml"
-DownloadsFile = "~/.saugrc/downloads.yml"
+DefaultConfigFile = "~/.saugrc/config.yml"
+DefaultDownloadsFile = "~/.saugrc/downloads.yml"
+DefaultTargetDirectory = "~/pod/"
+DefaultNrDays = 7
 
-TargetDirectory = "~/pod/"
 Verbose = true
 Debug = true
 WeekInSeconds = 7 * 24 * 3600
@@ -130,9 +132,105 @@ class FeedCollection
   end
 end
 
+def usage
+  puts <<-EOF
+usage: ruby saug.rb [OPTIONS]
+  Downloads new items from the configured feeds.
+
+  At the moment most features are not implemented yet
+
+  Possible options are:
+
+    -h, --help:
+      Show this help and exit.
+
+    -d dir, --download_directory dir:
+      Set download directory.
+
+    -u, --update:
+      Update feeds only, don't download anything.
+
+    -l, --list:
+      List currently configured feeds.
+
+    -t [nr], --time [nr]:
+      Only download files that are younger than nr days. Default is #{DefaultNrDays}.
+      If the argument is omitted, no time restriction is enforced.
+
+    -f name, --feed name:
+      Use only the given feed and ignore all other feeds.
+
+    --config_file file file:
+      Use the given config file instead of the default one at #{DefaultConfigFile}
+
+    --downloads_file file:
+      Use the given file to store information on downloaded files
+      instead of the default one at #{DefaultDownloadsFile}
+
+    --D, --debug:
+      Use debug mode with high verbosity and downloads are deactivated.
+      No downloads information is written.
+
+    --V n, --verbosity n:
+      Set verbosity to the given level. The level should be one of
+      0: No output (useful for cron jobs)
+      1: (default) Normal output.
+      2: Loquatious output.
+
+  EOF
+end
+
 if $0 == __FILE__
-  collection = FeedCollection.new(ConfigFile, DownloadsFile)
-  collection.download(TargetDirectory, Time.now - WeekInSeconds)
+  opts = GetoptLong.new(
+    ['-h', '--help', GetoptLong::NO_ARGUMENT],
+    ['-d', '--download_directory', GetoptLong::REQUIRED_ARGUMENT],
+    ['-u', '--update', GetoptLong::NO_ARGUMENT],
+    ['-l', '--list', GetoptLong::NO_ARGUMENT],
+    ['-t', '--time', GetoptLong::OPTIONAL_ARGUMENT],
+    ['-f', '--feed', GetoptLong::REQUIRED_ARGUMENT],
+    ['--config_file', GetoptLong::REQUIRED_ARGUMENT],
+    ['--downloads_file', GetoptLong::REQUIRED_ARGUMENT],
+    ['-D', '--debug', GetoptLong::NO_ARGUMENT],
+    ['-V', '--verbose', GetoptLong::REQUIRED_ARGUMENT] )
+
+  # variables that manage the behaviour of the program
+  target_directory = DefaultTargetDirectory
+  config_file = DefaultConfigFile
+  downloads_file = DefaultDownloadsFile
+  update = false
+  debug = false
+  verbosity = 1
+  diff_time = DefaultNrDays
+
+  opts.each do |opt, arg|
+    case opt
+    when '-h'
+      usage
+      exit(0)
+    when '-d'
+      target_directory = arg
+    when '-u'
+      update = true
+    when '-l'
+      # TODO: list feeds
+      exit(0)
+    when '-t'
+      diff_time = (arg == '' ? nil : arg.to_i)
+    when '-f'
+      feed = arg.to_i
+    when '--config_file'
+      config_file = arg
+    when '--downloads_file'
+      downloads_file = arg
+    when '-D'
+      debug = true
+    when '-V'
+      verbosity = arg.to_i
+    end
+  end
+
+  collection = FeedCollection.new(config_file, downloads_file)
+  collection.download(target_directory, Time.now - WeekInSeconds)
   collection.save
 end
 
