@@ -35,18 +35,17 @@ DefaultDownloadsFile = "~/.saugrc/downloads.yml"
 DefaultTargetDirectory = "~/pod/"
 DefaultNrDays = 7
 
-Verbose = true
-Debug = true
-WeekInSeconds = 7 * 24 * 3600
+DayInSeconds = 24 * 3600
 
 
 class AggregatorFeed
   attr_reader :source, :downloads
 
-  def initialize(source = nil, downloads = nil)
+  def initialize(source = nil, downloads = nil, verbosity = 1, debug = false)
     @source = source
     @downloads = (downloads || [])
     @rss = nil
+    @verbosity, @debug = verbosity, debug
   end
 
   def get_rss
@@ -56,7 +55,7 @@ class AggregatorFeed
   def download_conditional(directory, min_date, only_new = true)
     get_rss unless @rss
     @rss.items.each_with_index do |an_item, item_nr|
-      if an_item.date > min_date && ! (only_new && @downloads.include?(extract_guid(an_item)))
+      if (! min_date || an_item.date > min_date) && ! (only_new && @downloads.include?(extract_guid(an_item)))
         download(item_nr, directory)
       end
     end
@@ -71,15 +70,17 @@ class AggregatorFeed
     filename = File.join(File.expand_path(directory), File.basename(uri.path))
 
     # download url and add guid to @downloads
-    unless Debug
+    unless @debug
       of = open(filename, 'wb')
       of.write(open(url).read)
       of.close
     end
 
+    puts "Starting downloading of #{url} to #{filename}" if @verbosity > 0
+
     @downloads << extract_guid(@rss.items[item_nr])
 
-    puts "Downloaded #{url} to #{filename}" if Verbose
+    puts "Downloaded #{url} to #{filename}" if @verbosity > 0
   end
 
   private
@@ -95,11 +96,13 @@ class AggregatorFeed
 end
 
 class FeedCollection
-  def initialize(config_file, downloads_file)
+  def initialize(config_file, downloads_file, verbosity = 1, debug = false)
     @config_file = File.expand_path(config_file)
     @downloads_file = File.expand_path(downloads_file)
+    @verbosity, @debug = verbosity, debug
 
     @sources = YAML::load(File.read(@config_file))
+
 
     begin
       @downloads = YAML::load(File.read(@downloads_file))
@@ -110,7 +113,7 @@ class FeedCollection
 
     @feeds = []
     @sources.each do |a_source|
-      @feeds << AggregatorFeed.new(a_source, @downloads[a_source])
+      @feeds << AggregatorFeed.new(a_source, @downloads[a_source], @verbosity, @debug)
     end
   end
 
@@ -229,8 +232,10 @@ if $0 == __FILE__
     end
   end
 
-  collection = FeedCollection.new(config_file, downloads_file)
-  collection.download(target_directory, Time.now - WeekInSeconds)
+  min_download_time = (diff_time ? Time.now - diff_time * DayInSeconds : nil)
+
+  collection = FeedCollection.new(config_file, downloads_file, verbosity, debug)
+  collection.download(target_directory, min_download_time )
   collection.save
 end
 
