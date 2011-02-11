@@ -69,14 +69,14 @@ class AggregatorFeed
     uri = URI.parse(url)
     filename = File.join(File.expand_path(directory), File.basename(uri.path))
 
+    puts "Start downloading of #{url} to #{filename}" if @verbosity > 0
+
     # download url and add guid to @downloads
     unless @debug
       of = open(filename, 'wb')
       of.write(open(url).read)
       of.close
     end
-
-    puts "Starting downloading of #{url} to #{filename}" if @verbosity > 0
 
     @downloads << extract_guid(@rss.items[item_nr])
 
