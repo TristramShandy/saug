@@ -52,6 +52,10 @@ class AggregatorFeed
     open(@source) {|s| @rss = RSS::Parser.parse(s.read, false)}
   end
 
+  def set_update(update)
+    @update = update
+  end
+
   def download_conditional(directory, min_date, only_new = true)
     get_rss unless @rss
     @rss.items.each_with_index do |an_item, item_nr|
@@ -72,7 +76,7 @@ class AggregatorFeed
     puts "Start downloading of #{url} to #{filename}" if @verbosity > 0
 
     # download url and add guid to @downloads
-    unless @debug
+    unless @debug || @update
       of = open(filename, 'wb')
       of.write(open(url).read)
       of.close
@@ -121,6 +125,10 @@ class FeedCollection
     @feeds.each do |a_feed|
       a_feed.download_conditional(directory, min_date)
     end
+  end
+
+  def set_update(update)
+    @feeds.each {|a_feed| a_feed.set_update(update)}
   end
 
   def save
@@ -235,6 +243,7 @@ if $0 == __FILE__
   min_download_time = (diff_time ? Time.now - diff_time * DayInSeconds : nil)
 
   collection = FeedCollection.new(config_file, downloads_file, verbosity, debug)
+  collection.set_update(update)
   collection.download(target_directory, min_download_time )
   collection.save
 end
