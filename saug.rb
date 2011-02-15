@@ -73,7 +73,7 @@ class AggregatorFeed
     uri = URI.parse(url)
     filename = File.join(File.expand_path(directory), File.basename(uri.path))
 
-    puts "Start downloading of #{url} to #{filename}" if @verbosity > 0
+    puts "Start downloading of #{url} to #{filename}" if @verbosity > 0 && ! @update
 
     # download url and add guid to @downloads
     unless @debug || @update
@@ -84,7 +84,13 @@ class AggregatorFeed
 
     @downloads << extract_guid(@rss.items[item_nr])
 
-    puts "Downloaded #{url} to #{filename}" if @verbosity > 0
+    if @verbosity > 0
+      if @update
+        puts "Updated #{url}"
+      else
+        puts "Downloaded #{url} to #{filename}"
+      end
+    end
   end
 
   private
