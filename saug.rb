@@ -49,7 +49,12 @@ class AggregatorFeed
   end
 
   def get_rss
-    open(@source) {|s| @rss = RSS::Parser.parse(s.read, false)}
+    begin
+      open(@source) {|s| @rss = RSS::Parser.parse(s.read, false)}
+    rescue OpenURI::HTTPError
+      puts "WARNING: Unable to open #{@source}"
+      puts "  Error Message #{$!}"
+    end
   end
 
   def set_update(update)
@@ -58,9 +63,13 @@ class AggregatorFeed
 
   def download_conditional(directory, min_date, only_new = true)
     get_rss unless @rss
-    @rss.items.each_with_index do |an_item, item_nr|
-      if (! min_date || an_item.date > min_date) && ! (only_new && @downloads.include?(extract_guid(an_item)))
-        download(item_nr, directory)
+
+    # @rss Feed may not be available
+    if @rss
+      @rss.items.each_with_index do |an_item, item_nr|
+        if (! min_date || an_item.date > min_date) && ! (only_new && @downloads.include?(extract_guid(an_item)))
+          download(item_nr, directory)
+        end
       end
     end
   end
@@ -78,7 +87,12 @@ class AggregatorFeed
     # download url and add guid to @downloads
     unless @debug || @update
       of = open(filename, 'wb')
-      of.write(open(url).read)
+      begin 
+        of.write(open(url).read)
+      rescue
+        puts "WARNING: Unable to open #{url}"
+        puts "  Error Message #{$!}"
+      end
       of.close
     end
 
