@@ -85,18 +85,21 @@ class AggregatorFeed
     puts "Start downloading of #{url} to #{filename}" if @verbosity > 0 && ! @update
 
     # download url and add guid to @downloads
+    download_ok = false
     unless @debug || @update
       of = open(filename, 'wb')
       begin 
+        download_ok = true
         of.write(open(url).read)
       rescue
+        download_ok = false
         puts "WARNING: Unable to open #{url}"
         puts "  Error Message #{$!}"
       end
       of.close
     end
 
-    @downloads << extract_guid(@rss.items[item_nr])
+    @downloads << extract_guid(@rss.items[item_nr]) if download_ok || @update
 
     if @verbosity > 0
       if @update
