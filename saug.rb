@@ -151,6 +151,12 @@ class FeedCollection
     @feeds.each {|a_feed| a_feed.set_update(update)}
   end
 
+  # restrict feeds to the one with the given index
+  def set_feed(feed_index)
+    a_source = @sources[feed_index]
+    @feeds = [AggregatorFeed.new(a_source, @downloads[a_source], @verbosity, @debug)]
+  end
+
   def save
     download_data = {}
     @feeds.each do |a_feed|
@@ -164,7 +170,7 @@ class FeedCollection
 
   # list feeds
   def list
-    @sources.each {|a_source| puts a_source}
+    @sources.each_with_index {|a_source, i| puts "#{i}: #{a_source}"}
   end
 end
 
@@ -236,6 +242,7 @@ if $0 == __FILE__
   update = false
   debug = false
   do_list = false
+  feed = nil
   verbosity = 1
   diff_time = DefaultNrDays
 
@@ -271,6 +278,10 @@ if $0 == __FILE__
   if do_list
     collection.list
     exit(0)
+  end
+
+  if feed
+    collection.set_feed(feed)
   end
 
   collection.set_update(update)
