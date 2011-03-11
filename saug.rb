@@ -161,6 +161,11 @@ class FeedCollection
     of.puts download_data.to_yaml
     of.close
   end
+
+  # list feeds
+  def list
+    @sources.each {|a_source| puts a_source}
+  end
 end
 
 def usage
@@ -230,6 +235,7 @@ if $0 == __FILE__
   downloads_file = DefaultDownloadsFile
   update = false
   debug = false
+  do_list = false
   verbosity = 1
   diff_time = DefaultNrDays
 
@@ -243,8 +249,7 @@ if $0 == __FILE__
     when '-u'
       update = true
     when '-l'
-      # TODO: list feeds
-      exit(0)
+      do_list = true
     when '-t'
       diff_time = (arg == '' ? nil : arg.to_i)
     when '-f'
@@ -263,6 +268,11 @@ if $0 == __FILE__
   min_download_time = (diff_time ? Time.now - diff_time * DayInSeconds : nil)
 
   collection = FeedCollection.new(config_file, downloads_file, verbosity, debug)
+  if do_list
+    collection.list
+    exit(0)
+  end
+
   collection.set_update(update)
   collection.download(target_directory, min_download_time )
   collection.save
