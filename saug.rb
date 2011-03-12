@@ -154,6 +154,12 @@ class FeedCollection
     @feeds.each {|a_feed| a_feed.set_update(update)}
   end
 
+  # restrict feeds to the one with the given index
+  def set_feed(feed_index)
+    a_source = @sources[feed_index]
+    @feeds = [AggregatorFeed.new(a_source, @downloads[a_source], @verbosity, @debug)]
+  end
+
   def save
     download_data = {}
     @feeds.each do |a_feed|
@@ -163,6 +169,11 @@ class FeedCollection
     of = File.open(@downloads_file, 'w')
     of.puts download_data.to_yaml
     of.close
+  end
+
+  # list feeds
+  def list
+    @sources.each_with_index {|a_source, i| puts "#{i}: #{a_source}"}
   end
 end
 
@@ -233,6 +244,8 @@ if $0 == __FILE__
   downloads_file = DefaultDownloadsFile
   update = false
   debug = false
+  do_list = false
+  feed = nil
   verbosity = 1
   diff_time = DefaultNrDays
 
@@ -246,8 +259,7 @@ if $0 == __FILE__
     when '-u'
       update = true
     when '-l'
-      # TODO: list feeds
-      exit(0)
+      do_list = true
     when '-t'
       diff_time = (arg == '' ? nil : arg.to_i)
     when '-f'
@@ -266,6 +278,15 @@ if $0 == __FILE__
   min_download_time = (diff_time ? Time.now - diff_time * DayInSeconds : nil)
 
   collection = FeedCollection.new(config_file, downloads_file, verbosity, debug)
+  if do_list
+    collection.list
+    exit(0)
+  end
+
+  if feed
+    collection.set_feed(feed)
+  end
+
   collection.set_update(update)
   collection.download(target_directory, min_download_time )
   collection.save
