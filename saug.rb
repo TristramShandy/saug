@@ -51,7 +51,7 @@ class AggregatorFeed
   def get_rss
     begin
       open(@source) {|s| @rss = RSS::Parser.parse(s.read, false)}
-    rescue OpenURI::HTTPError
+    rescue StandardError
       puts "WARNING: Unable to open #{@source}"
       puts "  Error Message #{$!}"
     end
